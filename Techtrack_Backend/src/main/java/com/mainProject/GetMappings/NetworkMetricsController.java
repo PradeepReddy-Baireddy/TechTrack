@@ -23,8 +23,8 @@ public class NetworkMetricsController {
             try (PreparedStatement preparedStatement = connection.prepareStatement(query);
                  ResultSet resultSet = preparedStatement.executeQuery()) {
                 while (resultSet.next()) {
-                    long receivedBytes = resultSet.getInt("received_bytes");
-                    long sentBytes = resultSet.getInt("sent_bytes");
+                    long receivedBytes = resultSet.getLong("received_bytes");
+                    long sentBytes = resultSet.getLong("sent_bytes");
                     Timestamp tmstp = resultSet.getTimestamp("timestamp");
 
                     //System.out.println(sentBytes);
@@ -34,6 +34,32 @@ public class NetworkMetricsController {
                     networkMetrics.setReceivedBytes(receivedBytes);
                     networkMetrics.setSentBytes(sentBytes);
                     networkMetrics.setTimestamp(tmstp);
+                    networkMetricsList.add(networkMetrics);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Handle SQLException appropriately
+        }
+        return networkMetricsList;
+    }
+
+    @GetMapping("/get_network_metrics")
+    public List<AggregatedNetworkMetrics> getAllNetworkMetrics() {
+        List<AggregatedNetworkMetrics> networkMetricsList = new ArrayList<>();
+        try (Connection connection = DriverManager.getConnection(JDBC_URL, JDBC_USERNAME, JDBC_PASSWORD)) {
+            String query = "SELECT * FROM network_metrics ORDER BY timestamp DESC LIMIT 20";
+            try (PreparedStatement preparedStatement = connection.prepareStatement(query);
+                 ResultSet resultSet = preparedStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    // Assuming NetworkMetrics is a POJO representing your network metrics
+                    AggregatedNetworkMetrics networkMetrics = new AggregatedNetworkMetrics();
+                    networkMetrics.setConnectionName(resultSet.getString("connection_name"));
+                    networkMetrics.setReceivedBytes(resultSet.getLong("received_bytes"));
+                    networkMetrics.setSentBytes(resultSet.getLong("sent_bytes"));
+                    networkMetrics.setReceivedPackets(resultSet.getLong("unicast_packets"));
+                    networkMetrics.setSentPackets(resultSet.getLong("sent_unicast_packets"));
+                    networkMetrics.setTimestamp(resultSet.getTimestamp("timestamp"));
                     networkMetricsList.add(networkMetrics);
                 }
             }
